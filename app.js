@@ -27,6 +27,7 @@ app.use(cors({
 }));
 app.use(express.static(path.join(__dirname, 'vistas')));
 
+
 console.log(' Variables cargadas:', {
   MONGODB_URI: process.env.MONGODB_URI ? 'EXISTE' : 'UNDEFINED',
   PORT: process.env.PORT

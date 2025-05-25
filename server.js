@@ -9,3 +9,4 @@ app.get('*', (req, res) => {
 app.listen(port, () => {
   console.log(` Servidor de parqueadero funcionando en puerto: ${port}`);
 });
+
