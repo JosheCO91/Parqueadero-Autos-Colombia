@@ -1,92 +1,63 @@
 const API_BASE = 'http://localhost:4000';
-        const API_ESPACIOS = `${API_BASE}/api/espacios`;
+const API_ESPACIOS = `${API_BASE}/api/espacios`;
 
-        document.addEventListener('DOMContentLoaded', function () {
-            cargarEspacios();
-        });
-        async function inicializarEspacios() {
-            try {
+document.addEventListener('DOMContentLoaded', function () {
+    cargarEspacios();
+});
 
-                const response = await fetch(`${API_BASE}/api/espacios/verificar-espacios`);
-                const data = await response.json();
+async function crearEspaciosIniciales() {
+    try {
 
-                if (data.totalEspacios === 0) {
-
-                    const initResponse = await fetch(`${API_BASE}/api/espacios/inicializar`, {
-                        method: 'POST'
-                    });
-
-                    if (!initResponse.ok) {
-                        throw new Error('Error al crear espacios iniciales');
-                    }
-
-                    alert('15 espacios iniciales creados (10 carros, 5 motos)');
-                }
-
-                cargarEspacios();
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Error al inicializar espacios: " + error.message);
-            }
+        for (let i = 1; i <= 10; i++) {
+            await Espacio.create({
+                codigo: `C${i}`,
+                tipo: 'carro'
+            });
         }
 
 
-        document.addEventListener('DOMContentLoaded', function () {
-            inicializarEspacios();
-        });
-        async function crearEspaciosIniciales() {
-            try {
-
-                for (let i = 1; i <= 10; i++) {
-                    await Espacio.create({
-                        codigo: `C${i}`,
-                        tipo: 'carro'
-                    });
-                }
-
-
-                for (let i = 1; i <= 5; i++) {
-                    await Espacio.create({
-                        codigo: `M${i}`,
-                        tipo: 'moto'
-                    });
-                }
-
-                console.log('15 espacios creados exitosamente');
-            } catch (err) {
-                console.error('Error al crear espacios:', err);
-            }
+        for (let i = 1; i <= 5; i++) {
+            await Espacio.create({
+                codigo: `M${i}`,
+                tipo: 'moto'
+            });
         }
 
-        async function cargarEspacios() {
-            try {
-                const response = await fetch(`${API_BASE}/api/espacios`);
-                if (!response.ok) throw new Error('Error al cargar espacios');
+        console.log('15 espacios creados exitosamente');
+    } catch (err) {
+        console.error('Error al crear espacios:', err);
+    }
+}
 
-                const espacios = await response.json();
+async function cargarEspacios() {
+    try {
+        const response = await fetch(`${API_BASE}/api/espacios`);
+        if (!response.ok) throw new Error('Error al cargar espacios');
 
-
-                const total = espacios.length;
-                const disponibles = espacios.filter(e => e.estado === 'disponible').length;
-                const ocupados = espacios.filter(e => e.estado === 'ocupado').length;
-
-                document.getElementById('totalEspacios').textContent = total;
-                document.getElementById('espaciosDisponibles').textContent = disponibles;
-                document.getElementById('espaciosOcupados').textContent = ocupados;
+        const espacios = await response.json();
 
 
-                if (total >= 15 && disponibles === 0) {
-                    alert('¡Parqueadero lleno! No se pueden registrar más vehículos hasta que salga alguno.');
-                }
+        const total = espacios.length;
+        const disponibles = espacios.filter(e => e.estado === 'disponible').length;
+        const ocupados = espacios.filter(e => e.estado === 'ocupado').length;
+
+        document.getElementById('totalEspacios').textContent = total;
+        document.getElementById('espaciosDisponibles').textContent = disponibles;
+        document.getElementById('espaciosOcupados').textContent = ocupados;
 
 
-                const grid = document.getElementById('espaciosGrid');
-                grid.innerHTML = '';
+        if (total >= 15 && disponibles === 0) {
+            alert('¡Parqueadero lleno! No se pueden registrar más vehículos hasta que salga alguno.');
+        }
 
-                espacios.forEach(espacio => {
-                    const card = document.createElement('div');
-                    card.className = `col-md-3 mb-3 espacio-card ${espacio.estado}`;
-                    card.innerHTML = `
+
+        const grid = document.getElementById('espaciosGrid');
+        grid.innerHTML = '';
+
+        espacios.forEach(espacio => {
+            const card = document.createElement('div');
+            card.className = `col-md-3 mb-3 espacio-card ${espacio.estado}`;
+            card.innerHTML = `
                 <div class="card">
                     <div class="card-body">
                         <h5>Espacio ${espacio.codigo}</h5>
@@ -95,65 +66,47 @@ const API_BASE = 'http://localhost:4000';
                         ${espacio.vehiculo ? `
                             <p><strong>Vehículo:</strong> ${espacio.vehiculo.placa}</p>
                             <button class="btn btn-sm btn-danger" 
-                                    onclick="registrarSalida('${espacio.vehiculo._id}')">
+                                    onclick="liberarEspacio('${espacio._id}')">
                                 Registrar salida
-                            </button>
+                            </onclick=>
                         ` : '<p class="text-success">Disponible</p>'}
                     </div>
                 </div>
             `;
-                    grid.appendChild(card);
-                });
+            grid.appendChild(card);
+        });
 
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Error al cargar espacios");
-            }
-        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Error al cargar espacios");
+    }
+}
 
-        async function registrarSalida(vehiculoId) {
-            if (!confirm('¿Registrar salida de este vehículo?')) return;
+function actualizarResumen(espacios) {
+    document.getElementById('totalEspacios').textContent = espacios.length;
+    document.getElementById('espaciosDisponibles').textContent =
+        espacios.filter(e => e.estado === 'disponible').length;
+    document.getElementById('espaciosOcupados').textContent =
+        espacios.filter(e => e.estado === 'ocupado').length;
+}
 
-            try {
-                const response = await fetch(`${API_BASE}/api/vehiculos/${vehiculoId}/salida`, {
-                    method: 'PATCH'
-                });
+function renderizarEspacios(espacios) {
+    const grid = document.getElementById('espaciosGrid');
+    grid.innerHTML = '';
 
-                if (!response.ok) throw new Error('Error al registrar salida');
+    espacios.forEach(espacio => {
+        const espacioCard = document.createElement('div');
+        espacioCard.className = `col-md-3 espacio-card ${espacio.estado}`;
 
-                alert('Salida registrada correctamente');
-                cargarEspacios();
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Error al registrar salida: " + error.message);
-            }
-        }
-
-        function actualizarResumen(espacios) {
-            document.getElementById('totalEspacios').textContent = espacios.length;
-            document.getElementById('espaciosDisponibles').textContent =
-                espacios.filter(e => e.estado === 'disponible').length;
-            document.getElementById('espaciosOcupados').textContent =
-                espacios.filter(e => e.estado === 'ocupado').length;
-        }
-
-        function renderizarEspacios(espacios) {
-            const grid = document.getElementById('espaciosGrid');
-            grid.innerHTML = '';
-
-            espacios.forEach(espacio => {
-                const espacioCard = document.createElement('div');
-                espacioCard.className = `col-md-3 espacio-card ${espacio.estado}`;
-
-                let vehiculoInfo = 'Libre';
-                if (espacio.vehiculo) {
-                    vehiculoInfo = `
+        let vehiculoInfo = 'Libre';
+        if (espacio.vehiculo) {
+            vehiculoInfo = `
                         <strong>Vehículo:</strong> ${espacio.vehiculo.placa}<br>
                         <strong>Dueño:</strong> ${espacio.vehiculo.propietario?.documento || 'N/A'}
                     `;
-                }
+        }
 
-                espacioCard.innerHTML = `
+        espacioCard.innerHTML = `
                     <div class="card h-100">
                         <div class="card-body">
                             <h5 class="card-title">Espacio ${espacio.codigo}</h5>
@@ -165,35 +118,163 @@ const API_BASE = 'http://localhost:4000';
                         </div>
                         <div class="card-footer bg-transparent">
                             ${espacio.estado === 'disponible' ?
-                        '<button class="btn btn-sm btn-success" disabled>Disponible</button>' :
-                        '<button class="btn btn-sm btn-danger" onclick="liberarEspacio(\'' + espacio._id + '\')">Liberar</button>'}
+                '<button class="btn btn-sm btn-success" disabled>Disponible</button>' :
+                '<button class="btn btn-sm btn-danger" onclick="liberarEspacio(\'' + espacio._id + '\')">Liberar</button>'}
                         </div>
                     </div>
                 `;
 
-                grid.appendChild(espacioCard);
+        grid.appendChild(espacioCard);
+    });
+}
+
+async function liberarEspacio(espacioId) {
+    if (!confirm('¿Registrar salida y generar pago?')) return;
+
+    try {
+        const response = await fetch(`${API_ESPACIOS}/${espacioId}/liberar`, {
+            method: 'PATCH' 
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error al preparar pago');
+        }
+
+        const data = await response.json();
+        
+        if (!data.vehiculoInfo) {
+            await fetch(`${API_ESPACIOS}/${espacioId}/confirmar-pago`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ metodoPago: 'sin_vehiculo', pagoData: null })
             });
+            return cargarEspacios();
         }
 
-        async function liberarEspacio(espacioId) {
-            if (!confirm('¿Liberar este espacio?')) return;
+        document.getElementById('vehiculoInfo').textContent = 
+            `${data.vehiculoInfo.placa} (${data.vehiculoInfo.tipo})`;
+        document.getElementById('propietarioInfo').textContent = 
+            `${data.propietarioInfo.nombre} (${data.propietarioInfo.documento})`;
+        document.getElementById('tarifaBase').textContent = 
+            `$${data.pagoData.tarifaBase.toLocaleString()}`;
+        document.getElementById('totalPago').textContent = 
+            `$${data.pagoData.total.toLocaleString()}`;
+        document.getElementById('espacioId').value = espacioId;
+        document.getElementById('pagoData').value = JSON.stringify(data.pagoData);
 
-            try {
-                const response = await fetch(`${API_ESPACIOS}/${espacioId}/liberar`, {
-                    method: 'PATCH'
-                });
+        const pagoModal = new bootstrap.Modal(document.getElementById('pagoModal'));
+        pagoModal.show();
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message);
-                }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Error al preparar pago: " + error.message);
+    }
+}
 
-                alert('Espacio liberado con éxito');
-                cargarEspacios();
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Error al liberar espacio: " + error.message);
-            }
+async function confirmarPago() {
+    const metodoPago = document.getElementById('metodoPago').value;
+    const espacioId = document.getElementById('espacioId').value;
+    const pagoData = JSON.parse(document.getElementById('pagoData').value);
+
+    if (!metodoPago) {
+        alert('Seleccione un método de pago');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_ESPACIOS}/${espacioId}/confirmar-pago`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                metodoPago,
+                pagoData
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Error al confirmar pago');
         }
+
+        const pagoModal = bootstrap.Modal.getInstance(document.getElementById('pagoModal'));
+        pagoModal.hide();
+
+        alert('Pago registrado y espacio liberado con éxito');
+        cargarEspacios();
+
+        if (typeof cargarPagos === 'function') {
+            cargarPagos();
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Error al confirmar pago: " + error.message);
+    }
+}
+
+function calcularTarifa(tipoVehiculo, tipoUsuario) {
+    const tarifas = {
+        carro: {
+            normal: 80000,
+            mensual: 500000,
+            horas: 5000
+        },
+        moto: {
+            normal: 40000,
+            mensual: 250000,
+            horas: 3000
+        }
+    };
+    return tarifas[tipoVehiculo][tipoUsuario] || tarifas[tipoVehiculo].normal;
+}
+
+function calcularTotal(tipoVehiculo, tipoUsuario, fechaEntrada) {
+    const tarifaBase = calcularTarifa(tipoVehiculo, tipoUsuario);
+    if (tipoUsuario === 'horas') {
+        const horas = (new Date() - new Date(fechaEntrada)) / (1000 * 60 * 60);
+        return Math.ceil(horas) * tarifaBase;
+    }
+    return tarifaBase;
+}
+
+async function confirmarPago() {
+    const metodoPago = document.getElementById('metodoPago').value;
+    const espacioId = document.getElementById('espacioId').value;
+    const pagoData = JSON.parse(document.getElementById('pagoData').value);
+
+    if (!metodoPago) {
+        alert('Seleccione un método de pago');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_ESPACIOS}/${espacioId}/confirmar-pago`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                metodoPago,
+                pagoData
+            })
+        });
+
+        if (!response.ok) throw new Error('Error al confirmar pago');
+
+        const result = await response.json();
+
+        const pagoModal = bootstrap.Modal.getInstance(document.getElementById('pagoModal'));
+        pagoModal.hide();
+
+        alert('Pago registrado y espacio liberado con éxito');
+        cargarEspacios();
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Error al confirmar pago: " + error.message);
+    }
+}
 
 

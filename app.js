@@ -71,7 +71,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 const vehiculoRoutes = require('./rutas/vehiculoRuta');
 const celdaRoutes = require('./rutas/espacioRuta');
 const usuarioRoutes = require('./rutas/usuarioRuta');
-
+const pagosRouter = require('./rutas/pagoRuta');
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -85,6 +85,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/vehiculos', vehiculoRoutes);
 app.use('/api/espacios', celdaRoutes);
 app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/pagos', pagosRouter);
+
 
 
 app.get('/api/vehiculos/activos', async (req, res) => {
